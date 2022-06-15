@@ -2,6 +2,7 @@ import itertools
 import re
 from collections.abc import Sequence
 from operator import itemgetter
+from string import punctuation
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -295,6 +296,8 @@ class WordExtractor:
             or (next_char["x1"] < word_x0 - intraline_tol)
             or (next_char["top"] > word_bottom + interline_tol)
             or (next_char["bottom"] < word_top - interline_tol)
+            or (current_chars[0].isin(punctuation))
+            or (next_char['text'].isin(punctuation))
         )
 
     def iter_chars_to_words(
@@ -309,7 +312,6 @@ class WordExtractor:
                     yield current_word
                     current_word = []
                     current_bbox = None
-
             elif (
                 current_word
                 and current_bbox
