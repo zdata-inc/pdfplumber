@@ -592,6 +592,7 @@ class TableFinder(object):
                 x_tolerance=settings.text_x_tolerance,
                 y_tolerance=settings.text_y_tolerance,
                 keep_blank_chars=settings.keep_blank_chars,
+                punct_delimiter=punct_delimiter,
             )
 
         v_explicit = []

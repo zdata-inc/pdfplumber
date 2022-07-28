@@ -310,10 +310,12 @@ class PageImage:
         stroke_width: int = DEFAULT_STROKE_WIDTH,
         x_tolerance: T_num = utils.DEFAULT_X_TOLERANCE,
         y_tolerance: T_num = utils.DEFAULT_Y_TOLERANCE,
+        punct_delimit: bool
     ) -> "PageImage":
 
         words = self.page.extract_words(
-            x_tolerance=x_tolerance, y_tolerance=y_tolerance
+            x_tolerance=x_tolerance, y_tolerance=y_tolerance,
+            punct_delimit=punct_delimit
         )
         self.draw_rects(words, stroke=stroke, fill=fill, stroke_width=stroke_width)
         return self

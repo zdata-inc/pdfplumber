@@ -283,6 +283,7 @@ class WordExtractor:
         current_chars: T_obj_list,
         current_bbox: T_bbox,
         next_char: T_obj,
+        punct_delimit: bool,
     ) -> bool:
 
         upright = current_chars[0]["upright"]
@@ -296,12 +297,12 @@ class WordExtractor:
             or (next_char["x1"] < word_x0 - intraline_tol)
             or (next_char["top"] > word_bottom + interline_tol)
             or (next_char["bottom"] < word_top - interline_tol)
-            or (current_chars[0]['text'] in punctuation)
-            or (next_char['text'] in punctuation)
+            or (punct_delimit and (current_chars[0]['text'] in punctuation))
+            or (punct_delimit and (next_char['text'] in punctuation))
         )
 
     def iter_chars_to_words(
-        self, chars: T_obj_iter
+        self, chars: T_obj_iter, punct_delimit: bool
     ) -> Generator[T_obj_list, None, None]:
         current_word: T_obj_list = []
         current_bbox: Optional[T_bbox] = None
@@ -315,7 +316,8 @@ class WordExtractor:
             elif (
                 current_word
                 and current_bbox
-                and self.char_begins_new_word(current_word, current_bbox, char)
+                and self.char_begins_new_word(current_word, current_bbox, char,
+                                              punct_delimit)
             ):
                 yield current_word
                 current_word = [char]
@@ -356,7 +358,7 @@ class WordExtractor:
                     yield from to_yield
 
     def iter_extract_tuples(
-        self, chars: T_obj_iter
+        self, chars: T_obj_iter, punct_delimit: bool
     ) -> Generator[Tuple[T_obj, T_obj_list], None, None]:
         if not self.use_text_flow:
             chars = self.iter_sort_chars(chars)
@@ -365,11 +367,12 @@ class WordExtractor:
         grouped = itertools.groupby(chars, grouping_key)
 
         for keyvals, char_group in grouped:
-            for word_chars in self.iter_chars_to_words(char_group):
+            for word_chars in self.iter_chars_to_words(char_group, punct_delimit):
                 yield (self.merge_chars(word_chars), word_chars)
 
-    def extract(self, chars: T_obj_list) -> T_obj_list:
-        return list(word for word, word_chars in self.iter_extract_tuples(chars))
+    def extract(self, chars: T_obj_list, punct_delimit: bool) -> T_obj_list:
+        return list(word for word, word_chars in self.iter_extract_tuples(chars,
+                                                                          punct_delimit))
 
 
 class LayoutEngine:
@@ -466,6 +469,7 @@ def extract_words(
     horizontal_ltr: bool = True,  # Should words be read left-to-right?
     vertical_ttb: bool = True,  # Should vertical words be read top-to-bottom?
     extra_attrs: Optional[List[str]] = None,
+    punct_delimit: bool = False,
 ) -> T_obj_list:
     return WordExtractor(
         x_tolerance=x_tolerance,
@@ -475,17 +479,18 @@ def extract_words(
         horizontal_ltr=horizontal_ltr,
         vertical_ttb=vertical_ttb,
         extra_attrs=extra_attrs,
-    ).extract(chars)
+    ).extract(chars, punct_delimit)
 
 
 class TextLayout:
     def __init__(
-        self, chars: T_obj_list, extractor: WordExtractor, engine: LayoutEngine
+        self, chars: T_obj_list, extractor: WordExtractor, engine: LayoutEngine,
+        punct_delimit: bool
     ):
         self.chars = chars
         self.extractor = extractor
         self.engine = engine
-        self.word_tuples = list(extractor.iter_extract_tuples(chars))
+        self.word_tuples = list(extractor.iter_extract_tuples(chars, punct_delimit))
         self.layout_tuples = engine.calculate(self.word_tuples)
         self.as_string = "".join(map(itemgetter(0), self.layout_tuples))
 
